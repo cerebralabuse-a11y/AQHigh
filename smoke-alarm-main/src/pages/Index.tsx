@@ -13,6 +13,7 @@ const Index = () => {
   }, [fetchAQIByCity]);
 
   const isAboveSafeLimit = data ? data.aqi > 50 : false;
+  const showLoadingState = isLoading && !data;
 
   const getBackgroundClass = (aqi: number) => {
     if (aqi <= 50) return "bg-aqi-safe";
@@ -55,7 +56,7 @@ const Index = () => {
             </div>
           )}
           
-          {isLoading && !data && (
+          {showLoadingState && (
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="w-12 h-12 border-3 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
               <p className="text-muted-foreground text-sm">Checking air quality...</p>

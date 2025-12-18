@@ -158,33 +158,54 @@ export const useAQI = () => {
     setIsLoading(true);
     
     try {
-      const isSecure = typeof window !== "undefined" && (window.isSecureContext || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-      if (!isSecure) {
-        throw new Error("Geolocation requires HTTPS or localhost");
+      // Check if we're in a secure context (HTTPS or localhost)
+      const isSecureContext = window.isSecureContext;
+      const isLocalhost = window.location.hostname === "localhost" || 
+                         window.location.hostname === "127.0.0.1" || 
+                         window.location.hostname === "[::1]";
+      
+      if (!isSecureContext && !isLocalhost) {
+        throw new Error("Geolocation requires HTTPS or localhost for security reasons");
       }
 
       // Get user's location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 10000,
-          enableHighAccuracy: false,
+          timeout: 15000, // Increased timeout
+          enableHighAccuracy: true, // Enable high accuracy for better results
+          maximumAge: 300000, // Accept cached positions up to 5 minutes old
         });
       });
 
       const { latitude, longitude } = position.coords;
       const { aqi } = await fetchOpenMeteoAQI(latitude, longitude);
 
-      handleAQISuccess(aqi, `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`);
+      handleAQISuccess(aqi, `${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°`);
 
       toast.success("Location detected!", {
         description: `Showing AQI for your area`,
       });
-    } catch (error) {
-      console.error(error);
-      const message = error instanceof Error ? error.message : "Location access or AQI lookup failed";
-      toast.error(message, {
-        description: "If on HTTP, switch to localhost or HTTPS. You can also type a city.",
-      });
+    } catch (error: any) {
+      console.error("Geolocation error:", error);
+      
+      let message = "Location access failed";
+      let description = "You can manually enter a city name instead";
+      
+      // Handle specific error cases
+      if (error.code === error.PERMISSION_DENIED) {
+        message = "Location access denied";
+        description = "Please enable location permissions for this site";
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        message = "Location unavailable";
+        description = "Location services may be disabled or unavailable";
+      } else if (error.code === error.TIMEOUT) {
+        message = "Location request timed out";
+        description = "Please try again or enter a city manually";
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      
+      toast.error(message, { description });
       await fetchDefaultCity();
     } finally {
       setIsLoading(false);
