@@ -2,43 +2,67 @@ import { Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+interface Pollutant {
+  value: number;
+  name: string;
+  unit: string;
+  severity?: 'good' | 'moderate' | 'unhealthy';
+}
+
 interface TweetButtonProps {
   cigaretteCount: number;
   aqi: number;
   city: string;
-  isCleanAir?: boolean;
+  pollutants: Record<string, Pollutant>;
 }
 
-const TweetButton = ({ cigaretteCount, aqi, city, isCleanAir = false }: TweetButtonProps) => {
-  const generateTweetText = () => {
-    if (isCleanAir) {
-      const cleanMessages = [
-        `🫁 Just checked my AQI in ${city}: ${aqi}\n\nClean air! Breathing healthy today 🌿\n\nThis is how it should be everywhere!\n\n#AirQuality #CleanAir #ClimateAction`,
-        `✨ Good news: ${city} has clean air today!\n\nAQI: ${aqi} - Healthy breathing 🫁\n\nLet's keep it this way!\n\n#AirQuality #PublicHealth`,
-        `🌱 ${city} is breathing easy today!\n\nAQI: ${aqi} - Clean air, healthy lungs 🫁\n\nMore cities should follow this example!\n\n#CleanAir #AirQuality #ClimateAction`,
-        `💚 Clean air alert: ${city} has AQI ${aqi} today!\n\nHealthy breathing, healthy living 🫁\n\nThis is what we're fighting for!\n\n#AirQuality #CleanAir`,
-      ];
-      return cleanMessages[Math.floor(Math.random() * cleanMessages.length)];
-    }
+const TweetButton = ({ cigaretteCount, aqi, city, pollutants }: TweetButtonProps) => {
+  const getDominantPollutant = () => {
+    const relevantPollutants = Object.values(pollutants).filter(p => p.severity);
+    if (relevantPollutants.length === 0) return null;
 
-    const messages = [
-      `🚬 Just checked my AQI in ${city}: ${aqi}\n\nThat's equivalent to smoking ${cigaretteCount.toFixed(1)} cigarettes TODAY.\n\nBut sure, let's keep arguing about straws 🙃\n\n#AirQuality #ClimateChange`,
-      `🌫️ Plot twist: I don't smoke, but ${city}'s air made me smoke ${cigaretteCount.toFixed(1)} cigarettes today anyway.\n\nAQI: ${aqi}\n\nLove that for us 💀\n\n#AirPollution #PublicHealth`,
-      `POV: You're health-conscious and avoid smoking\n\nThe air in ${city} (AQI ${aqi}): "Best I can do is ${cigaretteCount.toFixed(1)} cigarettes"\n\n🚬🫁✨\n\n#AirQuality`,
-      `📊 My daily stats:\n☕ Coffees: 2\n🚬 Cigarettes smoked: 0\n🌫️ Cigarettes from breathing in ${city}: ${cigaretteCount.toFixed(1)}\n\nAQI: ${aqi}\n\nWe live in a society 🤡\n\n#ClimateAction`,
-    ];
-    
-    return messages[Math.floor(Math.random() * messages.length)];
+    // Sort by severity weight
+    const severityWeight = { 'unhealthy': 3, 'moderate': 2, 'good': 1 };
+
+    return relevantPollutants.sort((a, b) => {
+      const weightA = severityWeight[a.severity || 'good'] || 0;
+      const weightB = severityWeight[b.severity || 'good'] || 0;
+      return weightB - weightA;
+    })[0];
+  };
+
+  const generateTweetText = () => {
+    const date = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const dominant = getDominantPollutant();
+    const isHealthy = aqi <= 50;
+
+    const statusText = isHealthy
+      ? `✨ Status: Clean Air & Healthy Atmosphere`
+      : dominant
+        ? `⚠️ Highest Pollutant: ${dominant.name} (${dominant.value} ${dominant.unit})`
+        : `⚠️ Particulate Matter PM2.5: ${pollutants['pm25']?.value || 'N/A'} ${pollutants['pm25']?.unit || ''}`;
+
+    return `Today's Air Quality in ${city}\n\n` +
+      `🌍 AQI: ${aqi}\n` +
+      `${statusText}\n` +
+      `📅 ${date}\n\n` +
+      `#AQHigh #AirQuality #ClimateAction #PublicHealth`;
   };
 
   const handleTweet = () => {
     const tweetText = generateTweetText();
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    
+
     window.open(tweetUrl, '_blank', 'width=550,height=420');
-    
+
     toast.success("Tweet composed!", {
-      description: isCleanAir ? "Share the good news!" : "Share the harsh reality with the world",
+      description: "Ready to share your local air quality stats.",
     });
   };
 
@@ -49,7 +73,7 @@ const TweetButton = ({ cigaretteCount, aqi, city, isCleanAir = false }: TweetBut
       variant="ghost"
     >
       <Twitter className="w-5 h-5 mr-2" />
-      {isCleanAir ? "Share Good News" : "Share This Reality"}
+      Share Update
     </Button>
   );
 };

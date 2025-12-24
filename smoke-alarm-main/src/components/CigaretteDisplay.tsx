@@ -45,7 +45,7 @@ const CigaretteDisplay = ({ count, isActive }: CigaretteDisplayProps) => {
                 <feDropShadow dx="2" dy="4" stdDeviation="4" floodOpacity="0.15" />
               </filter>
             </defs>
-            
+
             {/* Left Lung - Enhanced Boxy Design */}
             <g filter="url(#lungShadow)">
               {/* Main left lung body - larger and more defined */}
@@ -66,7 +66,7 @@ const CigaretteDisplay = ({ count, isActive }: CigaretteDisplayProps) => {
               <rect x="50" y="105" width="8" height="8" rx="1" fill="#FFE5E8" opacity="0.4" />
               <rect x="40" y="130" width="8" height="8" rx="1" fill="#FFE5E8" opacity="0.4" />
             </g>
-            
+
             {/* Right Lung - Enhanced Boxy Design */}
             <g filter="url(#lungShadow)">
               {/* Main right lung body */}
@@ -87,7 +87,7 @@ const CigaretteDisplay = ({ count, isActive }: CigaretteDisplayProps) => {
               <rect x="162" y="105" width="8" height="8" rx="1" fill="#FFE5E8" opacity="0.4" />
               <rect x="172" y="130" width="8" height="8" rx="1" fill="#FFE5E8" opacity="0.4" />
             </g>
-            
+
             {/* Trachea/Windpipe - Enhanced Boxy */}
             <g filter="url(#lungShadow)">
               <rect x="100" y="45" width="20" height="35" rx="4" fill="url(#bronchiGradient)" />
@@ -97,12 +97,12 @@ const CigaretteDisplay = ({ count, isActive }: CigaretteDisplayProps) => {
               <rect x="102" y="64" width="16" height="3" rx="1.5" fill="#FFB3BA" opacity="0.5" />
               <rect x="102" y="70" width="16" height="3" rx="1.5" fill="#FFB3BA" opacity="0.5" />
             </g>
-            
+
             {/* Healthy glow effect - more subtle */}
             <ellipse cx="110" cy="125" rx="100" ry="90" fill="#90EE90" opacity="0.08" />
           </svg>
         </div>
-        
+
         {/* Health message */}
         <p className="mt-8 text-center text-sm text-foreground/60 max-w-[200px]">
           Clean air - healthy breathing!
@@ -136,7 +136,7 @@ const CigaretteDisplay = ({ count, isActive }: CigaretteDisplayProps) => {
               <feDropShadow dx="2" dy="4" stdDeviation="4" floodOpacity="0.15" />
             </filter>
           </defs>
-          
+
           {/* Main cigarette body */}
           <g filter="url(#shadow)">
             {/* Filter section */}
@@ -145,28 +145,28 @@ const CigaretteDisplay = ({ count, isActive }: CigaretteDisplayProps) => {
             <rect x="58" y="145" width="44" height="2" fill="#C8A06B" opacity="0.5" />
             <rect x="58" y="155" width="44" height="2" fill="#C8A06B" opacity="0.5" />
             <rect x="58" y="165" width="44" height="2" fill="#C8A06B" opacity="0.5" />
-            
+
             {/* Paper section */}
             <rect x="55" y="40" width="50" height="90" rx="2" fill="url(#paperGradient)" />
-            
+
             {/* Burning end */}
             <rect x="55" y="30" width="50" height="15" rx="2" fill="url(#burnGradient)" className="animate-pulse-soft" />
             <rect x="57" y="32" width="46" height="4" fill="#4A4A4A" opacity="0.3" rx="1" />
           </g>
-          
+
           {/* Smoke wisps */}
           <g className="animate-smoke" style={{ transformOrigin: '80px 30px' }}>
             <ellipse cx="75" cy="15" rx="8" ry="6" fill="currentColor" opacity="0.15" />
             <ellipse cx="85" cy="8" rx="6" ry="5" fill="currentColor" opacity="0.1" />
           </g>
         </svg>
-        
+
         {/* Count badge */}
         <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 glass-card card-glow px-6 py-3 rounded-full shadow-lg">
           <span className="font-display text-3xl font-bold text-foreground text-glow">×{Math.ceil(count)}</span>
         </div>
       </div>
-      
+
       {/* Health message */}
       <p className="mt-8 text-center text-sm text-foreground/60 max-w-[200px]">
         {getHealthMessage(count)}

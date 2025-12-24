@@ -3,6 +3,8 @@ import LocationSearch from "@/components/LocationSearch";
 import AQIDisplay from "@/components/AQIDisplay";
 import CigaretteDisplay from "@/components/CigaretteDisplay";
 import TweetButton from "@/components/TweetButton";
+import ShareExperience from "@/components/ShareExperience";
+import PollutantList from "@/components/PollutantList";
 import { useAQI } from "@/hooks/useAQI";
 
 const Index = () => {
@@ -49,13 +51,13 @@ const Index = () => {
         <div className="flex-1 flex items-center justify-center py-8">
           {data && (
             <div className="animate-count-up">
-              <CigaretteDisplay 
-                count={Math.ceil(data.cigaretteEquivalent)} 
+              <CigaretteDisplay
+                count={Math.ceil(data.cigaretteEquivalent)}
                 isActive={isAboveSafeLimit}
               />
             </div>
           )}
-          
+
           {showLoadingState && (
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="w-12 h-12 border-3 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
@@ -78,8 +80,8 @@ const Index = () => {
           {/* Location & AQI */}
           {data && (
             <div className="animate-fade-in">
-              <AQIDisplay 
-                aqi={data.aqi} 
+              <AQIDisplay
+                aqi={data.aqi}
                 city={data.city}
                 category={data.category}
                 cigaretteCount={data.cigaretteEquivalent}
@@ -102,13 +104,29 @@ const Index = () => {
                 cigaretteCount={data.cigaretteEquivalent}
                 aqi={data.aqi}
                 city={data.city}
-                isCleanAir={!isAboveSafeLimit}
+                pollutants={data.pollutants}
               />
             </div>
           )}
 
+          {/* Share Experience Button */}
+          {data && (
+            <div className="animate-count-up" style={{ animationDelay: '0.25s' }}>
+              <ShareExperience
+                aqi={data.aqi}
+                cigarettes={data.cigaretteEquivalent}
+                city={data.city}
+              />
+            </div>
+          )}
+
+          {/* Major Pollutants Breakdown */}
+          {data && data.pollutants && (
+            <PollutantList pollutants={data.pollutants} />
+          )}
+
           {/* Footer */}
-          <footer className="text-center pt-4">
+          <footer className="text-center pt-8 pb-4">
             <p className="text-xs text-foreground/50">
               1 cigarette ≈ AQI 22/day • Berkeley Earth Study
             </p>
