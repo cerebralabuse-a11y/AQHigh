@@ -6,6 +6,7 @@ import TweetButton from "@/components/TweetButton";
 import ShareExperience from "@/components/ShareExperience";
 import PollutantList from "@/components/PollutantList";
 import AnimeSkyBackground from "@/components/AnimeSkyBackground";
+import AQIStreak from "@/components/AQIStreak";
 import { useAQI } from "@/hooks/useAQI";
 
 const Index = () => {
@@ -92,6 +93,13 @@ const Index = () => {
             isLoading={isLoading}
             currentCity={data?.city || ""}
           />
+
+          {/* Weekly Streak/Forecast */}
+          {data && data.forecast && data.forecast.length > 0 && (
+            <div className="animate-fade-in delay-100">
+              <AQIStreak forecast={data.forecast} />
+            </div>
+          )}
 
           {/* Tweet Button */}
           {data && (

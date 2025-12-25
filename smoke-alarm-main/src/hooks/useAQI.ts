@@ -17,6 +17,14 @@ interface AQIData {
   city: string;
   cigaretteEquivalent: number;
   pollutants: Record<string, Pollutant>;
+  forecast: DailyForecast[];
+}
+
+export interface DailyForecast {
+  day: string;
+  avg: number;
+  max: number;
+  min: number;
 }
 
 // AQI categories based on US EPA standards
@@ -199,7 +207,21 @@ const fetchWAQIAQI = async (query: string, isLatLong = false) => {
     }
 
     console.log("Extracted AQI:", aqi);
-    return { aqi, city, pollutants };
+
+    // Extract Forecast (PM2.5 usually correlates best with general AQI)
+    const forecast: DailyForecast[] = [];
+    if (result.forecast && result.forecast.daily && result.forecast.daily.pm25) {
+      result.forecast.daily.pm25.forEach((item: any) => {
+        forecast.push({
+          day: item.day,
+          avg: item.avg,
+          max: item.max,
+          min: item.min
+        });
+      });
+    }
+
+    return { aqi, city, pollutants, forecast };
   } catch (error) {
     console.error("Error fetching AQI:", error);
     throw error;
@@ -210,7 +232,7 @@ export const useAQI = () => {
   const [data, setData] = useState<AQIData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAQISuccess = useCallback((aqi: number, cityLabel: string, pollutants: Record<string, Pollutant> = {}) => {
+  const handleAQISuccess = useCallback((aqi: number, cityLabel: string, pollutants: Record<string, Pollutant> = {}, forecast: DailyForecast[] = []) => {
     if (typeof aqi !== 'number' || isNaN(aqi)) return;
 
     // Recalculate cigs using the new accurate PM2.5 derivation
@@ -219,7 +241,8 @@ export const useAQI = () => {
       category: getCategory(aqi),
       city: cityLabel,
       cigaretteEquivalent: calculateCigaretteEquivalent(aqi),
-      pollutants
+      pollutants,
+      forecast: forecast || []
     };
 
     setData(newData);
@@ -234,8 +257,8 @@ export const useAQI = () => {
   const fetchDefaultCity = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { aqi, city, pollutants } = await fetchWAQIAQI(DEFAULT_CITY);
-      handleAQISuccess(aqi, city, pollutants);
+      const { aqi, city, pollutants, forecast } = await fetchWAQIAQI(DEFAULT_CITY);
+      handleAQISuccess(aqi, city, pollutants, forecast);
       toast.info(`Showing ${DEFAULT_CITY}`, { description: "Default city due to lookup issue" });
     } catch (err) {
       console.error("Error fetching default city:", err);
@@ -249,8 +272,8 @@ export const useAQI = () => {
   const fetchAQIByCity = useCallback(async (cityName: string) => {
     setIsLoading(true);
     try {
-      const { aqi, city, pollutants } = await fetchWAQIAQI(cityName);
-      handleAQISuccess(aqi, city, pollutants);
+      const { aqi, city, pollutants, forecast } = await fetchWAQIAQI(cityName);
+      handleAQISuccess(aqi, city, pollutants, forecast);
     } catch (error) {
       toast.error("Lookup failed", { description: "City not found" });
       await fetchDefaultCity();
@@ -265,6 +288,10 @@ export const useAQI = () => {
     // Helper to wrap geolocation in a promise
     const getPosition = (options?: PositionOptions): Promise<GeolocationPosition> => {
       return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation is not supported by this browser."));
+          return;
+        }
         navigator.geolocation.getCurrentPosition(resolve, reject, options);
       });
     };
@@ -275,24 +302,57 @@ export const useAQI = () => {
         window.location.hostname === "127.0.0.1" ||
         window.location.hostname === "[::1]";
 
-      if (!isSecureContext && !isLocalhost) throw new Error("Geolocation needs HTTPS");
+      // Geolocation requires HTTPS (except on localhost)
+      if (!isSecureContext && !isLocalhost) {
+        throw new Error("Geolocation requires a secure connection (HTTPS).");
+      }
 
       let position: GeolocationPosition;
       try {
-        // Attempt 1: High Accuracy
-        position = await getPosition({ timeout: 10000, enableHighAccuracy: true });
+        // Attempt 1: High Accuracy (Short timeout to fail fast)
+        position = await getPosition({ timeout: 5000, enableHighAccuracy: true });
       } catch (err: any) {
-        // Attempt 2: Low Accuracy Fallback
-        position = await getPosition({ timeout: 15000, enableHighAccuracy: false });
+        console.warn("High accuracy location failed:", err.message);
+
+        // precise permission handling
+        if (err.code === 1) { // PERMISSION_DENIED
+          throw new Error("Permission denied. Please enable location services.");
+        }
+
+        // Attempt 2: Low Accuracy Fallback (Longer timeout)
+        position = await getPosition({ timeout: 10000, enableHighAccuracy: false });
       }
 
       const { latitude, longitude } = position.coords;
-      const { aqi, city, pollutants } = await fetchWAQIAQI(`${latitude};${longitude}`, true);
+      // Rounding coordinates slightly can improve API cache hit rate
+      const lat = latitude.toFixed(4);
+      const lng = longitude.toFixed(4);
 
-      handleAQISuccess(aqi, city, pollutants);
+      const { aqi, city, pollutants, forecast } = await fetchWAQIAQI(`${lat};${lng}`, true);
+
+      handleAQISuccess(aqi, city, pollutants, forecast);
       toast.success(`Locality: ${city}`);
-    } catch (error) {
-      toast.error("Location failed", { description: "Trying default city..." });
+    } catch (error: any) {
+      console.error("Location error details:", error);
+
+      let errorMsg = "Unable to detect location";
+      let desc = "Falling back to default city...";
+
+      if (error.code === 1 || error.message?.includes("Permission")) {
+        errorMsg = "Location Permission Denied";
+        desc = "Please enable location access in your browser settings.";
+      } else if (error.code === 2) {
+        errorMsg = "Position Unavailable";
+        desc = "GPS signal lost or unavailable.";
+      } else if (error.code === 3) {
+        errorMsg = "Location Timeout";
+        desc = "Request took too long.";
+      } else if (error.message?.includes("HTTPS")) {
+        errorMsg = "Connection Insecure";
+        desc = "Location requires HTTPS.";
+      }
+
+      toast.error(errorMsg, { description: desc });
       await fetchDefaultCity();
     } finally {
       setIsLoading(false);
