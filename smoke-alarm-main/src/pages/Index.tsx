@@ -5,6 +5,7 @@ import CigaretteDisplay from "@/components/CigaretteDisplay";
 import TweetButton from "@/components/TweetButton";
 import ShareExperience from "@/components/ShareExperience";
 import PollutantList from "@/components/PollutantList";
+import AnimeSkyBackground from "@/components/AnimeSkyBackground";
 import { useAQI } from "@/hooks/useAQI";
 
 const Index = () => {
@@ -17,15 +18,10 @@ const Index = () => {
   const isAboveSafeLimit = data ? data.aqi > 50 : false;
   const showLoadingState = isLoading && !data;
 
-  const getBackgroundClass = (aqi: number) => {
-    if (aqi <= 50) return "bg-aqi-safe";
-    if (aqi <= 100) return "bg-aqi-moderate";
-    if (aqi <= 200) return "bg-aqi-unhealthy";
-    return "bg-aqi-hazardous";
-  };
-
+  // Background is now handled by AnimeSkyBackground, but we keep the wrapper for specific font/layout properties
   return (
-    <div className={`min-h-screen min-h-dvh safe-area-inset transition-all duration-700 relative overflow-hidden ${data ? getBackgroundClass(data.aqi) : 'bg-aqi-moderate'}`}>
+    <div className="min-h-screen min-h-dvh safe-area-inset relative overflow-hidden text-foreground selection:bg-primary/20">
+      <AnimeSkyBackground aqi={data?.aqi ?? 50} />
       <main className="relative z-10 container max-w-md mx-auto px-5 py-8 flex flex-col min-h-screen min-h-dvh">
         {/* Header Section */}
         <header className="pt-4 pb-8 relative">
