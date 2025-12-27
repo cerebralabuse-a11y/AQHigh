@@ -206,7 +206,7 @@ const fetchWAQIAQI = async (query: string, isLatLong = false) => {
       });
     }
 
-    console.log("Extracted AQI:", aqi);
+
 
     // Extract Forecast (PM2.5 usually correlates best with general AQI)
     const forecast: DailyForecast[] = [];

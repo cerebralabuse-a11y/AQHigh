@@ -2,76 +2,64 @@ import React, { useMemo } from 'react';
 
 interface AnimeSkyBackgroundProps {
     aqi: number;
+    cigarettes?: number;
 }
 
-const AnimeSkyBackground: React.FC<AnimeSkyBackgroundProps> = ({ aqi }) => {
+const AnimeSkyBackground: React.FC<AnimeSkyBackgroundProps> = React.memo(({ aqi, cigarettes }) => {
+    // Default to converting AQI if cigarettes prop isn't passed directly.
+    const cigs = cigarettes ?? (aqi / 22);
+
     const theme = useMemo(() => {
-        if (aqi <= 50) {
+        if (cigs <= 1) {
             return {
-                // Updated to match the "Makoto Shinkai" style reference: Cyan/Turquoise top, fading into pinkish horizon
                 skyGradient: "from-[#4FACFE] via-[#00C6FB] to-[#FF9A9E]",
                 cloudColor: "#FFFFFF",
-                cloudShadow: "#FFC4CB", // Peach/Pink shadow
+                cloudShadow: "#FFC4CB",
                 sunColor: "#FFD700",
-                rayColor: "rgba(255, 255, 255, 0.5)",
+                rayColor: "rgba(255, 255, 255, 0.4)", // Reduced opacity
                 atmosphere: "opacity-0",
                 filter: "",
                 cloudCount: 0,
-                sparkleOpacity: 0.5
+                sparkleOpacity: 0.4
             };
-        } else if (aqi <= 100) {
+        } else if (cigs <= 7) {
             return {
                 skyGradient: "from-[#4CA1AF] via-[#C4E0E5] to-[#F6E0B5]",
                 cloudColor: "#FFF8E7",
                 cloudShadow: "#E6D5B8",
                 sunColor: "#FFC65C",
-                rayColor: "rgba(255, 236, 179, 0.3)",
-                atmosphere: "bg-yellow-100/20 mix-blend-overlay",
-                filter: "sepia(20%)",
+                rayColor: "rgba(255, 236, 179, 0.25)",
+                atmosphere: "bg-yellow-100/10 mix-blend-overlay",
+                filter: "sepia(10%)", // Reduced filter
                 cloudCount: 0,
-                sparkleOpacity: 0.3
+                sparkleOpacity: 0.25
             };
-        } else if (aqi <= 200) {
+        } else {
             return {
                 skyGradient: "from-[#2C3E50] via-[#FD746C] to-[#FF8235]",
                 cloudColor: "#E0D7E5",
                 cloudShadow: "#9A8C9E",
                 sunColor: "#FF8C42",
-                rayColor: "rgba(255, 140, 66, 0.2)",
+                rayColor: "rgba(255, 140, 66, 0.15)",
                 atmosphere: "bg-orange-500/10 mix-blend-multiply",
-                filter: "contrast(110%)",
+                filter: "contrast(105%)",
                 cloudCount: 0,
-                sparkleOpacity: 0.2
-            };
-        } else {
-            // Hazardous: User requested "Vibrant colors like the clean state" but "remove clouds"
-            // They want the intense, beautiful colors (Psychedelic pollution?)
-            return {
-                skyGradient: "from-[#4FACFE] via-[#00C6FB] to-[#FF9A9E]", // reused vibrant gradient
-                cloudColor: "transparent",
-                cloudShadow: "transparent",
-                sunColor: "#FFD700",
-                rayColor: "rgba(255, 255, 255, 0.5)",
-                atmosphere: "bg-black/10 mix-blend-overlay",
-                filter: "hue-rotate(-15deg) contrast(120%) saturate(150%)", // Make it "extreme" but colorful
-                cloudCount: 0, // No clouds
-                sparkleOpacity: 0.6
+                sparkleOpacity: 0.15
             };
         }
-    }, [aqi]);
+    }, [cigs]);
 
     return (
-        <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-1000 bg-gradient-to-b ${theme.skyGradient} ${theme.filter}`}>
-            {/* Sun / Light Source */}
-            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] rounded-full blur-[60px]"
+        <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-1000 bg-gradient-to-b ${theme.skyGradient} ${theme.filter} transform-gpu`}>
+            {/* Sun / Light Source - Reduced blur for performance */}
+            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] rounded-full blur-3xl opacity-80"
                 style={{ background: `radial-gradient(circle, ${theme.sunColor}, transparent 70%)` }} />
 
-            {/* Sun Rays - CSS implementation using conical gradients or rotated divs */}
-            <div className="absolute top-[-20%] right-[-20%] w-[100vh] h-[100vh] animate-slow-spin origin-center opacity-50 pointer-events-none">
-                {/* Multiple rays */}
+            {/* Sun Rays - Optimized */}
+            <div className="absolute top-[-20%] right-[-20%] w-[100vh] h-[100vh] animate-slow-spin origin-center opacity-40 will-change-transform">
                 {[...Array(6)].map((_, i) => (
                     <div key={i}
-                        className="absolute top-1/2 left-1/2 w-full h-[60px] origin-left blur-xl"
+                        className="absolute top-1/2 left-1/2 w-full h-[60px] origin-left blur-lg"
                         style={{
                             background: `linear-gradient(90deg, ${theme.rayColor}, transparent)`,
                             transform: `rotate(${i * 60}deg) translateY(-50%)`,
@@ -80,45 +68,43 @@ const AnimeSkyBackground: React.FC<AnimeSkyBackgroundProps> = ({ aqi }) => {
             </div>
 
             {/* Atmospheric Overlay */}
-            <div className={`absolute inset-0 pointer-events-none z-20 ${theme.atmosphere}`} />
+            <div className={`absolute inset-0 z-20 ${theme.atmosphere}`} />
 
-            {/* Clouds Layer 1 (Back, Slower) */}
+            {/* Clouds - Only render if count > 0 */}
             {theme.cloudCount > 0 && (
-                <CloudLayer
-                    count={Math.floor(theme.cloudCount * 0.6)}
-                    baseColor={theme.cloudColor}
-                    shadowColor={theme.cloudShadow}
-                    speed={40}
-                    scale={0.6}
-                    opacity={0.8}
-                    zIndex={10}
-                />
+                <>
+                    <CloudLayer
+                        count={Math.floor(theme.cloudCount * 0.5)} // Reduced count
+                        baseColor={theme.cloudColor}
+                        shadowColor={theme.cloudShadow}
+                        speed={45}
+                        scale={0.6}
+                        opacity={0.8}
+                        zIndex={10}
+                    />
+                    <CloudLayer
+                        count={Math.ceil(theme.cloudCount * 0.3)} // Reduced count
+                        baseColor={theme.cloudColor}
+                        shadowColor={theme.cloudShadow}
+                        speed={30}
+                        scale={1.1}
+                        opacity={0.9}
+                        zIndex={20}
+                    />
+                </>
             )}
 
-            {/* Clouds Layer 2 (Front, Faster) */}
-            {theme.cloudCount > 0 && (
-                <CloudLayer
-                    count={Math.ceil(theme.cloudCount * 0.4)}
-                    baseColor={theme.cloudColor}
-                    shadowColor={theme.cloudShadow}
-                    speed={25}
-                    scale={1.2}
-                    opacity={0.9}
-                    zIndex={20}
-                />
-            )}
-
-            {/* Sparkles/Dust for Anime Feel */}
-            <div className="absolute inset-0 z-30 pointer-events-none" style={{ opacity: theme.sparkleOpacity }}>
-                {[...Array(15)].map((_, i) => (
+            {/* Sparkles - Reduced count and simplified */}
+            <div className="absolute inset-0 z-30" style={{ opacity: theme.sparkleOpacity }}>
+                {[...Array(8)].map((_, i) => ( // Reduced from 15 to 8
                     <div key={i}
-                        className="absolute rounded-full bg-white animate-pulse"
+                        className="absolute rounded-full bg-white/80 animate-pulse"
                         style={{
                             left: `${Math.random() * 100}%`,
                             top: `${Math.random() * 100}%`,
-                            width: `${Math.random() * 3 + 1}px`,
-                            height: `${Math.random() * 3 + 1}px`,
-                            animationDuration: `${Math.random() * 2 + 1}s`,
+                            width: `${Math.random() * 2 + 1}px`, // Smaller
+                            height: `${Math.random() * 2 + 1}px`,
+                            animationDuration: `${Math.random() * 3 + 2}s`, // Slower animation
                             animationDelay: `${Math.random() * 2}s`
                         }}
                     />
@@ -126,26 +112,26 @@ const AnimeSkyBackground: React.FC<AnimeSkyBackgroundProps> = ({ aqi }) => {
             </div>
         </div>
     );
-};
+});
 
-// Reusable Cloud Layer
-const CloudLayer = ({ count, baseColor, shadowColor, speed, scale, opacity, zIndex }: any) => {
+// Memoized Cloud Layer
+const CloudLayer = React.memo(({ count, baseColor, shadowColor, speed, scale, opacity, zIndex }: any) => {
     const clouds = useMemo(() => {
         return [...Array(count)].map((_, i) => ({
             id: i,
             left: Math.random() * 100,
-            top: Math.random() * 70 + 10,
+            top: Math.random() * 60 + 10,
             size: (0.8 + Math.random() * 0.6) * scale,
             delay: -Math.random() * speed,
-            shape: Math.floor(Math.random() * 4) // Variated shapes including new one
+            shape: Math.floor(Math.random() * 4)
         }));
     }, [count, scale, speed]);
 
     return (
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex }}>
+        <div className="absolute inset-0" style={{ zIndex }}>
             {clouds.map((cloud) => (
                 <div key={cloud.id}
-                    className="absolute animate-cloud-drift transition-colors duration-1000"
+                    className="absolute animate-cloud-drift transition-colors duration-1000 will-change-transform"
                     style={{
                         left: `${cloud.left}%`,
                         top: `${cloud.top}%`,
@@ -159,24 +145,13 @@ const CloudLayer = ({ count, baseColor, shadowColor, speed, scale, opacity, zInd
             ))}
         </div>
     );
-};
+});
 
-// Complex SVG Cloud Shapes 
-const AnimeCloudIcon = ({ base, shadow, shape }: { base: string, shadow: string, shape: number }) => {
-    // We can use filters to make them fluffy
-    // In React SVG, filters need unique IDs if used multiple times, but here we can just use simple shapes
-    // To get that "anime" look, we need rounded, billowing shapes with a bottom shadow
-
+// Optimized SVG Cloud - Removed expensive filters inside SVG
+const AnimeCloudIcon = React.memo(({ base, shadow, shape }: { base: string, shadow: string, shape: number }) => {
     return (
-        <div className="relative w-64 h-32 filter drop-shadow-md" style={{ color: base }}>
+        <div className="relative w-64 h-32" style={{ color: base }}> {/* Removed drop-shadow filter */}
             <svg viewBox="0 0 200 120" className="w-full h-full overflow-visible">
-                <defs>
-                    <linearGradient id={`cloudGrad_${shape}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor={base} />
-                        <stop offset="100%" stopColor={shadow} />
-                    </linearGradient>
-                </defs>
-
                 <g fill={base}>
                     {shape === 0 && (
                         <path d="M152 66.5C149.1 47.6 132.8 33 113.5 33C96.9 33 82.3 42.9 76.5 58C74.6 57.4 72.5 57 70.5 57C51.5 57 36 72.5 36 91.5C36 110.5 51.5 126 70.5 126H154.5C173.5 126 189 110.5 189 91.5C189 74.1 176.4 59.7 159.9 56.8L152 66.5Z"
@@ -195,12 +170,11 @@ const AnimeCloudIcon = ({ base, shadow, shape }: { base: string, shadow: string,
                             transform="translate(0, -10)" />
                     )}
                 </g>
-
-                {/* Highlight/Shadow accent - Subtle gradient overlay */}
-                <path d="M 50 115 Q 100 125 150 115" stroke={shadow} strokeWidth="3" fill="none" opacity="0.3" filter="blur(2px)" />
+                {/* Simplified shadow path - removed blur filter */}
+                <path d="M 50 115 Q 100 125 150 115" stroke={shadow} strokeWidth="3" fill="none" opacity="0.3" />
             </svg>
         </div>
     );
-}
+});
 
 export default AnimeSkyBackground;

@@ -153,6 +153,7 @@
         transparent 50%,
         hsl(var(--foreground) / 0.05) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -165,73 +166,7 @@
   }
 
   /* AQI-based backgrounds with animated patterns */
-  .bg-aqi-safe {
-    background: var(--gradient-safe);
-    position: relative;
-  }
 
-  .bg-aqi-safe::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(circle at 20% 30%, hsl(165 60% 90% / 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, hsl(160 55% 88% / 0.25) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, hsl(155 50% 85% / 0.2) 0%, transparent 60%);
-    animation: gradient-shift 15s ease infinite;
-    pointer-events: none;
-  }
-
-  .bg-aqi-moderate {
-    background: var(--gradient-moderate);
-    position: relative;
-  }
-
-  .bg-aqi-moderate::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(circle at 25% 40%, hsl(200 65% 90% / 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 75% 60%, hsl(195 60% 88% / 0.25) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, hsl(190 55% 85% / 0.2) 0%, transparent 60%);
-    animation: gradient-shift 15s ease infinite;
-    pointer-events: none;
-  }
-
-  .bg-aqi-unhealthy {
-    background: var(--gradient-unhealthy);
-    position: relative;
-  }
-
-  .bg-aqi-unhealthy::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(circle at 30% 35%, hsl(30 75% 92% / 0.35) 0%, transparent 50%),
-      radial-gradient(circle at 70% 65%, hsl(26 70% 90% / 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, hsl(24 65% 88% / 0.25) 0%, transparent 60%);
-    animation: gradient-shift 12s ease infinite;
-    pointer-events: none;
-  }
-
-  .bg-aqi-hazardous {
-    background: var(--gradient-hazardous);
-    position: relative;
-  }
-
-  .bg-aqi-hazardous::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(circle at 35% 40%, hsl(350 70% 92% / 0.4) 0%, transparent 50%),
-      radial-gradient(circle at 65% 60%, hsl(345 65% 90% / 0.35) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, hsl(340 60% 88% / 0.3) 0%, transparent 60%);
-    animation: gradient-shift 10s ease infinite;
-    pointer-events: none;
-  }
 
   @keyframes gradient-shift {
 
