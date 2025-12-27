@@ -149,31 +149,56 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
         fileInputRef.current?.click();
     };
 
-    const handleDownload = async () => {
+    const handleShare = async () => {
         if (!cardRef.current) return;
 
         try {
             const canvas = await html2canvas(cardRef.current, {
-                useCORS: true, // Important for external images if any
-                scale: 2, // Better quality
+                useCORS: true,
+                scale: 2,
                 backgroundColor: null,
             });
 
-            const image = canvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.href = image;
-            link.download = `aqhigh-experience-${Date.now()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Convert canvas to blob
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    toast.error("Failed to generate image");
+                    return;
+                }
 
-            toast.success("Image saved!", {
-                description: "Your experience card has been downloaded.",
-            });
+                const file = new File([blob], `aqhigh-experience.png`, { type: "image/png" });
+
+                // Check for native share support
+                if (navigator.share && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'AQHigh Experience',
+                            text: `Check out the air quality in ${city}! AQI: ${aqi}`,
+                        });
+                        toast.success("Shared successfully!");
+                    } catch (shareError) {
+                        console.log("Share skipped/cancelled", shareError);
+                    }
+                } else {
+                    // Fallback to download
+                    const link = document.createElement("a");
+                    link.href = canvas.toDataURL("image/png");
+                    link.download = `aqhigh-experience-${Date.now()}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    toast.success("Image saved!", {
+                        description: "Sharing not supported, saved to gallery instead.",
+                    });
+                }
+            }, "image/png");
+
         } catch (error) {
             console.error("Error generating image:", error);
-            toast.error("Failed to save image", {
-                description: "Please try again later.",
+            toast.error("Failed to share", {
+                description: "Could not generate share image.",
             });
         }
     };
@@ -189,7 +214,15 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                     Share Experience
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background/95 backdrop-blur-xl border-none shadow-2xl">
+            <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background/80 backdrop-blur-2xl border-white/10 shadow-2xl">
+                <div className="absolute top-4 right-4 z-50">
+                    <DialogClose asChild>
+                        <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40 text-white border border-white/10 h-8 w-8 backdrop-blur-md">
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </DialogClose>
+                </div>
+
                 <div ref={cardRef} className="relative aspect-[4/5] w-full bg-slate-900 group">
                     {/* Background Image / Placeholder */}
                     {backgroundImage ? (
@@ -260,12 +293,7 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                         </div>
                     </div>
 
-                    {/* Controls - These are visually hidden in the capture because of opacity-0 by default,
-                        and html2canvas doesn't trigger hover.
-                        However, to be safe, we can add data-html2canvas-ignore attribute if needed,
-                        but usually opacity-0 works fine.
-                        Actually, let's explicitly add the attribute to be safe.
-                    */}
+                    {/* Controls - Hidden during capture by data-html2canvas-ignore */}
                     <div
                         className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         data-html2canvas-ignore="true"
@@ -275,7 +303,7 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                                 onClick={handleCameraClick}
                                 variant="secondary"
                                 size="icon"
-                                className="rounded-full h-16 w-16 bg-white/20 hover:bg-white/30 backdrop-blur-md border-2 border-white/50"
+                                className="rounded-full h-16 w-16 bg-white/20 hover:bg-white/30 backdrop-blur-md border-2 border-white/50 shadow-2xl"
                             >
                                 <Camera className="w-8 h-8 text-white" />
                             </Button>
@@ -292,26 +320,33 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-4 flex gap-3 bg-background/50 backdrop-blur-md">
+                <div className="p-4 flex gap-3 bg-gradient-to-t from-background/90 to-background/50 backdrop-blur-xl border-t border-white/5">
                     <Button
-                        variant="outline"
-                        className="flex-1 border-foreground/10 hover:bg-foreground/5"
+                        variant={backgroundImage ? "outline" : "default"}
+                        className={cn(
+                            "h-12 rounded-xl transition-all duration-300",
+                            backgroundImage
+                                ? "flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-foreground backdrop-blur-md"
+                                : "w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
+                        )}
                         onClick={handleCameraClick}
                     >
                         <Camera className="w-4 h-4 mr-2" />
                         {backgroundImage ? 'Retake Photo' : 'Add Photo'}
                     </Button>
-                    <Button
-                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-                        onClick={handleDownload}
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        Save Image
-                    </Button>
+
+                    {backgroundImage && (
+                        <Button
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 h-12 rounded-xl border-none animate-in fade-in slide-in-from-right-4"
+                            onClick={handleShare}
+                        >
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Share Experience
+                        </Button>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
     );
 };
-
 export default ShareExperience;
