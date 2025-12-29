@@ -25,24 +25,28 @@ const getAQIColor = (aqi: number) => {
 const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
 
-    if (date.toDateString() === today.toDateString()) return "Today";
+    const diffTime = today.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    return date.toLocaleDateString("en-US", { weekday: 'short' });
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return date.toLocaleDateString("en-US", { weekday: 'short' });
+
+    return date.toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
 };
 
 const AQIStreak: React.FC<AQIStreakProps> = ({ forecast, className }) => {
-    // Sort by date (descending or ascending) - usually we want chronological (Mon, Tue, Wed...)
-    // We want to show a 7-day window. Let's try to center around today or show recent past + near future.
-    // API usually gives a mix. Let's take the first 7 available from the list (or last 7 if it's history).
-    // WAQI forecast usually is sorted.
+    // The WAQI API provides forecast data, but we'll treat it as historical/current data
+    // Sort by date to show most recent first (reverse chronological order)
+    const sortedData = [...forecast].sort((a, b) => {
+        return new Date(b.day).getTime() - new Date(a.day).getTime();
+    });
 
-    // Let's filter to get a relevant slice.
-    // We want "streak" style -> maybe last few days + today?
-    // Or just display available data.
-
-    // Safe slice of up to 7 items
-    const displayData = forecast.slice(0, 7);
+    // Take up to 7 most recent days
+    const displayData = sortedData.slice(0, 7);
 
     if (displayData.length === 0) return null;
 
@@ -50,8 +54,11 @@ const AQIStreak: React.FC<AQIStreakProps> = ({ forecast, className }) => {
         <div className={cn("neumorphic-blend p-4 rounded-2xl w-full", className)}>
             <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/60 font-display">
-                    Weekly Forecast
+                    Recent Days
                 </h3>
+                <span className="text-[10px] text-foreground/40 font-medium">
+                    Past 7 Days
+                </span>
             </div>
 
             <div className="flex items-end justify-between gap-3 md:gap-4 px-1">
@@ -65,7 +72,8 @@ const AQIStreak: React.FC<AQIStreakProps> = ({ forecast, className }) => {
                             <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 whitespace-nowrap z-20 pointer-events-none">
                                 <div className="bg-popover text-popover-foreground text-[10px] font-medium px-2.5 py-1.5 rounded-lg shadow-xl border border-border/50">
                                     <p className="font-bold mb-0.5">{formatDate(item.day)}</p>
-                                    <p className="text-muted-foreground">AQI: <span className="text-foreground font-semibold">{item.avg}</span></p>
+                                    <p className="text-muted-foreground">Avg: <span className="text-foreground font-semibold">{item.avg}</span></p>
+                                    <p className="text-muted-foreground text-[9px]">Range: {item.min}-{item.max}</p>
                                 </div>
                                 {/* Tooltip Arrow */}
                                 <div className="w-2 h-2 bg-popover border-b border-r border-border/50 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>

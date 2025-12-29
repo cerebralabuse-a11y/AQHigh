@@ -111,7 +111,7 @@ const PollutantList = ({ pollutants }: PollutantListProps) => {
             </div>
 
             <p className="text-[10px] text-foreground/30 text-center italic mt-2">
-                Pollutants shown as Individual AQI (IAQI).
+                All values converted to actual concentrations (µg/m³, ppb, etc.)
             </p>
         </div>
     );

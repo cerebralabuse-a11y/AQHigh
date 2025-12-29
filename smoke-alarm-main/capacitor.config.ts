@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.2b3fc305a7d4479da21a85e41f7f46c1',
+  appId: 'com.aqi2cigs.app',
   appName: 'AQI2CIGS',
   webDir: 'dist',
   // For localhost development, uncomment the server config below:

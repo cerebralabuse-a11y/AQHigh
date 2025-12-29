@@ -307,10 +307,16 @@ export const useAQI = () => {
         throw new Error("Geolocation requires a secure connection (HTTPS).");
       }
 
+      toast.info("Detecting your location...", { description: "Finding nearest air quality station" });
+
       let position: GeolocationPosition;
       try {
-        // Attempt 1: High Accuracy (Short timeout to fail fast)
-        position = await getPosition({ timeout: 5000, enableHighAccuracy: true });
+        // Attempt 1: High Accuracy with longer timeout for better precision
+        position = await getPosition({
+          timeout: 10000,
+          enableHighAccuracy: true,
+          maximumAge: 0 // Don't use cached position
+        });
       } catch (err: any) {
         console.warn("High accuracy location failed:", err.message);
 
@@ -320,18 +326,31 @@ export const useAQI = () => {
         }
 
         // Attempt 2: Low Accuracy Fallback (Longer timeout)
-        position = await getPosition({ timeout: 10000, enableHighAccuracy: false });
+        position = await getPosition({
+          timeout: 15000,
+          enableHighAccuracy: false,
+          maximumAge: 30000 // Allow 30s cached position for fallback
+        });
       }
 
-      const { latitude, longitude } = position.coords;
-      // Rounding coordinates slightly can improve API cache hit rate
-      const lat = latitude.toFixed(4);
-      const lng = longitude.toFixed(4);
+      const { latitude, longitude, accuracy } = position.coords;
+
+      // Use higher precision (6 decimal places ≈ 0.11m accuracy) for better station matching
+      // WAQI API will find the nearest monitoring station to these coordinates
+      const lat = latitude.toFixed(6);
+      const lng = longitude.toFixed(6);
+
+      console.log(`Location detected: ${lat}, ${lng} (accuracy: ${accuracy?.toFixed(0)}m)`);
 
       const { aqi, city, pollutants, forecast } = await fetchWAQIAQI(`${lat};${lng}`, true);
 
       handleAQISuccess(aqi, city, pollutants, forecast);
-      toast.success(`Locality: ${city}`);
+
+      // Show more detailed success message
+      const accuracyText = accuracy ? ` (±${Math.round(accuracy)}m)` : '';
+      toast.success(`📍 Location detected${accuracyText}`, {
+        description: `Showing nearest station: ${city}`
+      });
     } catch (error: any) {
       console.error("Location error details:", error);
 
@@ -346,7 +365,7 @@ export const useAQI = () => {
         desc = "GPS signal lost or unavailable.";
       } else if (error.code === 3) {
         errorMsg = "Location Timeout";
-        desc = "Request took too long.";
+        desc = "Request took too long. Try again or search manually.";
       } else if (error.message?.includes("HTTPS")) {
         errorMsg = "Connection Insecure";
         desc = "Location requires HTTPS.";
