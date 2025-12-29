@@ -49,40 +49,31 @@ const LocationSearch = ({
         // 2. Open-Meteo for broad city searching
         const [waqiRes, geoRes] = await Promise.allSettled([
           fetch(`https://api.waqi.info/search/?keyword=${encodedTerm}&token=${WAQI_TOKEN}`, { signal: controller.signal }),
-          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodedTerm}&count=5`, { signal: controller.signal })
+          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodedTerm}&count=10`, { signal: controller.signal })
         ]);
 
-        const newSuggestions: SearchResult[] = [];
+        const citySuggestions: SearchResult[] = [];
+        const stationSuggestions: SearchResult[] = [];
 
-        // Process WAQI Results (Specific Stations)
-        if (waqiRes.status === "fulfilled" && waqiRes.value.ok) {
-          const data = await waqiRes.value.json();
-          if (data.status === "ok" && Array.isArray(data.data)) {
-            data.data.slice(0, 3).forEach((item: any) => {
-              newSuggestions.push({
-                id: `waqi-${item.uid}`,
-                label: item.station.name,
-                value: item.station.url || item.station.name,
-                type: 'station',
-                aqi: item.aqi
-              });
-            });
-          }
-        }
+        // Helper function to check if WAQI result is relevant to search term
+        const isRelevant = (stationName: string, searchTerm: string): boolean => {
+          const station = stationName.toLowerCase();
+          const term = searchTerm.toLowerCase();
 
-        // Process Geocoding Results (Broad Cities)
+          // Split search term into words
+          const searchWords = term.split(/\s+/).filter(w => w.length >= 3);
+
+          // Station must contain at least one significant word from search term
+          return searchWords.length === 0 || searchWords.some(word => station.includes(word));
+        };
+
+        // Process Geocoding Results FIRST (Broad Cities) - Higher Priority
         if (geoRes.status === "fulfilled" && geoRes.value.ok) {
           const data = await geoRes.value.json();
           if (data.results && Array.isArray(data.results)) {
-            const seenCoords = new Set();
-            data.results.forEach((item: any) => {
-              // Primitive deduplication against WAQI results isn't easy without proximity check,
-              // so we just rely on visual distinction.
-              const coordKey = `${item.latitude.toFixed(1)},${item.longitude.toFixed(1)}`;
-              if (seenCoords.has(coordKey)) return;
-              seenCoords.add(coordKey);
-
-              newSuggestions.push({
+            // Show up to 8 city results (increased from 5, less aggressive deduplication)
+            data.results.slice(0, 8).forEach((item: any) => {
+              citySuggestions.push({
                 id: `geo-${item.id}`,
                 label: item.name,
                 subLabel: [item.admin1, item.country].filter(Boolean).join(", "),
@@ -92,6 +83,29 @@ const LocationSearch = ({
             });
           }
         }
+
+        // Process WAQI Results (Specific Stations) - Lower Priority, with Relevance Filter
+        if (waqiRes.status === "fulfilled" && waqiRes.value.ok) {
+          const data = await waqiRes.value.json();
+          if (data.status === "ok" && Array.isArray(data.data)) {
+            // Filter for relevance and show up to 5 relevant stations
+            data.data
+              .filter((item: any) => isRelevant(item.station.name, term))
+              .slice(0, 5)
+              .forEach((item: any) => {
+                stationSuggestions.push({
+                  id: `waqi-${item.uid}`,
+                  label: item.station.name,
+                  value: item.station.url || item.station.name,
+                  type: 'station',
+                  aqi: item.aqi
+                });
+              });
+          }
+        }
+
+        // Combine: Cities first, then stations
+        const newSuggestions = [...citySuggestions, ...stationSuggestions];
 
         if (!controller.signal.aborted) {
           setSuggestions(newSuggestions);
