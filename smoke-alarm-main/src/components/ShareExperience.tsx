@@ -239,53 +239,56 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
                     {/* Top Bar */}
-                    <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-10">
-                        <div className="bg-black/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                            <span className="text-white/90 text-xs font-semibold uppercase tracking-wider">
+                    <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-start z-10">
+                        <div className="bg-black/50 backdrop-blur-xl px-5 py-2 rounded-full border border-white/20 shadow-2xl">
+                            <span className="text-white text-[11px] font-black uppercase tracking-[0.25em] leading-none">
                                 AQHigh
                             </span>
                         </div>
                     </div>
 
-                    {/* Strava-like Stats Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 z-10 text-white">
-                        <div className="flex flex-col gap-1 mb-6">
-                            <h2 className="text-3xl font-bold font-display leading-none">
+                    {/* Stats Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-10 z-10 text-white">
+                        <div className="flex flex-col gap-2 mb-10">
+                            <h2 className="text-5xl font-bold font-display leading-tight tracking-tighter">
                                 {city}
                             </h2>
-                            <p className="text-white/60 text-sm font-medium uppercase tracking-wide">
+                            <p className="text-white/60 text-sm font-bold uppercase tracking-[0.2em]">
                                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">
+                        <div className="flex items-center space-x-12 pt-8 border-t border-white/20">
+                            <div className="flex flex-col">
+                                <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.2em] mb-4">
                                     Air Quality
                                 </p>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-bold leading-none">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-5xl font-bold leading-none tracking-tighter">
                                         {aqi}
                                     </span>
-                                    <span className="text-sm font-medium text-white/80">AQI</span>
+                                    <span className="text-xs font-black text-white/30 tracking-widest uppercase pb-1">AQI</span>
                                 </div>
                             </div>
-                            <div>
-                                <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">
-                                    {isHealthy ? "Breathing" : "Smoked"}
+
+                            <div className="h-14 w-[1px] bg-white/10" />
+
+                            <div className="flex flex-col">
+                                <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.2em] mb-4">
+                                    {isHealthy ? "Daily Status" : "Smoked Today"}
                                 </p>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-baseline gap-1">
-                                        <span className={cn("text-4xl font-bold leading-none", isHealthy ? "text-green-400" : "text-orange-400")}>
-                                            {isHealthy ? "Healthy" : cigarettes.toFixed(1)}
+                                <div className="flex items-center gap-5">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className={cn("text-5xl font-bold leading-none tracking-tighter", isHealthy ? "text-green-400" : "text-orange-400")}>
+                                            {isHealthy ? "Safe" : cigarettes.toFixed(1)}
                                         </span>
-                                        {!isHealthy && <span className="text-sm font-medium text-white/80">Cigs</span>}
+                                        {!isHealthy && <span className="text-xs font-black text-white/30 tracking-widest uppercase pb-1">Cigs</span>}
                                     </div>
-                                    <div className="w-8 h-10 -mt-2">
+                                    <div className="w-10 h-10 flex items-center justify-center">
                                         {isHealthy ? (
-                                            <LungIcon className="w-full h-full drop-shadow-lg" />
+                                            <LungIcon className="w-full h-full drop-shadow-2xl" />
                                         ) : (
-                                            <CigaretteIcon className="w-full h-full drop-shadow-lg" />
+                                            <CigaretteIcon className="w-full h-full drop-shadow-2xl" />
                                         )}
                                     </div>
                                 </div>

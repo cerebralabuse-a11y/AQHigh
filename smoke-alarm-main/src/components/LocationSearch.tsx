@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { MapPin, Search, Loader2, Building2, RadioTower } from "lucide-react";
+import { MapPin, Search, Loader2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WAQI_TOKEN } from "@/hooks/useAQI";
+import { searchCities } from "@/services/openWeatherService";
 
 interface LocationSearchProps {
-  onSearch: (city: string) => void;
+  onSearch: (city: string, coords?: { lat: number; lng: number }) => void;
   onUseCurrentLocation: () => void;
   isLoading: boolean;
   currentCity: string;
@@ -15,16 +15,15 @@ interface SearchResult {
   id: string;
   label: string;
   subLabel?: string;
-  value: string; // The value to search with (station url or geo:lat;lng)
-  type: 'station' | 'city';
-  aqi?: string;
+  value: string;
+  type: 'city';
+  coords: { lat: number; lng: number };
 }
 
 const LocationSearch = ({
   onSearch,
   onUseCurrentLocation,
   isLoading,
-  currentCity
 }: LocationSearchProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
@@ -37,93 +36,27 @@ const LocationSearch = ({
       return;
     }
 
-    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setIsSuggesting(true);
       try {
-        const term = searchValue.trim();
-        const encodedTerm = encodeURIComponent(term);
-
-        // Run both searches in parallel:
-        // 1. WAQI for accurate station data
-        // 2. Open-Meteo for broad city searching
-        const [waqiRes, geoRes] = await Promise.allSettled([
-          fetch(`https://api.waqi.info/search/?keyword=${encodedTerm}&token=${WAQI_TOKEN}`, { signal: controller.signal }),
-          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodedTerm}&count=10`, { signal: controller.signal })
-        ]);
-
-        const citySuggestions: SearchResult[] = [];
-        const stationSuggestions: SearchResult[] = [];
-
-        // Helper function to check if WAQI result is relevant to search term
-        const isRelevant = (stationName: string, searchTerm: string): boolean => {
-          const station = stationName.toLowerCase();
-          const term = searchTerm.toLowerCase();
-
-          // Split search term into words
-          const searchWords = term.split(/\s+/).filter(w => w.length >= 3);
-
-          // Station must contain at least one significant word from search term
-          return searchWords.length === 0 || searchWords.some(word => station.includes(word));
-        };
-
-        // Process Geocoding Results FIRST (Broad Cities) - Higher Priority
-        if (geoRes.status === "fulfilled" && geoRes.value.ok) {
-          const data = await geoRes.value.json();
-          if (data.results && Array.isArray(data.results)) {
-            // Show up to 8 city results (increased from 5, less aggressive deduplication)
-            data.results.slice(0, 8).forEach((item: any) => {
-              citySuggestions.push({
-                id: `geo-${item.id}`,
-                label: item.name,
-                subLabel: [item.admin1, item.country].filter(Boolean).join(", "),
-                value: `geo:${item.latitude};${item.longitude}`,
-                type: 'city'
-              });
-            });
-          }
-        }
-
-        // Process WAQI Results (Specific Stations) - Lower Priority, with Relevance Filter
-        if (waqiRes.status === "fulfilled" && waqiRes.value.ok) {
-          const data = await waqiRes.value.json();
-          if (data.status === "ok" && Array.isArray(data.data)) {
-            // Filter for relevance and show up to 5 relevant stations
-            data.data
-              .filter((item: any) => isRelevant(item.station.name, term))
-              .slice(0, 5)
-              .forEach((item: any) => {
-                stationSuggestions.push({
-                  id: `waqi-${item.uid}`,
-                  label: item.station.name,
-                  value: item.station.url || item.station.name,
-                  type: 'station',
-                  aqi: item.aqi
-                });
-              });
-          }
-        }
-
-        // Combine: Cities first, then stations
-        const newSuggestions = [...citySuggestions, ...stationSuggestions];
-
-        if (!controller.signal.aborted) {
-          setSuggestions(newSuggestions);
-        }
-
+        const locations = await searchCities(searchValue.trim());
+        const mapped = locations.map((loc, index) => ({
+          id: `ow-${index}-${loc.lat}-${loc.lon}`,
+          label: loc.name,
+          subLabel: [loc.state, loc.country].filter(Boolean).join(", "),
+          value: loc.name,
+          type: 'city' as const,
+          coords: { lat: loc.lat, lng: loc.lon }
+        }));
+        setSuggestions(mapped);
       } catch (error) {
-        // silent error to avoid UI disruption
+        console.error("Geocoding error:", error);
       } finally {
-        if (!controller.signal.aborted) {
-          setIsSuggesting(false);
-        }
+        setIsSuggesting(false);
       }
     }, 400);
 
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [searchValue]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -154,7 +87,7 @@ const LocationSearch = ({
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
               type="text"
-              placeholder="Enter city or station name..."
+              placeholder="Enter city name..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               className="flex-1 bg-background/30 border-border/30 rounded-xl focus:border-foreground/20 focus:bg-background/40 backdrop-blur-md"
@@ -187,7 +120,7 @@ const LocationSearch = ({
                   key={s.id}
                   type="button"
                   onClick={() => {
-                    onSearch(s.value);
+                    onSearch(s.label, s.coords);
                     setSearchValue("");
                     setIsExpanded(false);
                     setSuggestions([]);
@@ -196,11 +129,7 @@ const LocationSearch = ({
                   disabled={isLoading}
                 >
                   <div className="mt-0.5 self-start pt-1">
-                    {s.type === 'station' ? (
-                      <RadioTower className="w-4 h-4 text-primary/70" />
-                    ) : (
-                      <Building2 className="w-4 h-4 text-foreground/40" />
-                    )}
+                    <Building2 className="w-4 h-4 text-foreground/40" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-foreground font-medium truncate">
@@ -209,11 +138,6 @@ const LocationSearch = ({
                     {s.subLabel && (
                       <div className="text-xs text-foreground/50 truncate">
                         {s.subLabel}
-                      </div>
-                    )}
-                    {s.aqi && s.aqi !== "-" && (
-                      <div className="text-xs text-foreground/60 flex items-center gap-1 mt-0.5">
-                        AQI: <span className={`font-semibold px-1 rounded ${Number(s.aqi) < 50 ? 'bg-green-500/20 text-green-700' : Number(s.aqi) < 100 ? 'bg-yellow-500/20 text-yellow-700' : 'bg-red-500/20 text-red-700'}`}>{s.aqi}</span>
                       </div>
                     )}
                   </div>

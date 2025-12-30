@@ -45,14 +45,19 @@ const TweetButton = ({ cigaretteCount, aqi, city, pollutants }: TweetButtonProps
     const statusText = isHealthy
       ? `✨ Status: Clean Air & Healthy Atmosphere`
       : dominant
-        ? `⚠️ Highest Pollutant: ${dominant.name} (${dominant.value} ${dominant.unit})`
-        : `⚠️ Particulate Matter PM2.5: ${pollutants['pm25']?.value || 'N/A'} ${pollutants['pm25']?.unit || ''}`;
+        ? `⚠️ Highest Pollutant: ${dominant.name} (${dominant.value}${dominant.unit})`
+        : `⚠️ PM2.5: ${pollutants['pm2_5']?.value || 'N/A'}${pollutants['pm2_5']?.unit || ''}`;
+
+    const cigText = cigaretteCount >= 1
+      ? `🚬 Cigarette Equivalent: ${Math.ceil(cigaretteCount)} cigs/day\n`
+      : `🫁 Breathing: Healthy\n`;
 
     return `Today's Air Quality in ${city}\n\n` +
       `🌍 AQI: ${aqi}\n` +
+      `${cigText}` +
       `${statusText}\n` +
       `📅 ${date}\n\n` +
-      `#AQHigh #AirQuality #ClimateAction #PublicHealth`;
+      `#AQHigh #AirQuality #OpenWeather #ClimateAction`;
   };
 
   const handleTweet = () => {
