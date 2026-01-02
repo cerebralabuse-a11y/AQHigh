@@ -49,6 +49,21 @@ const AnimeSkyBackground: React.FC<AnimeSkyBackgroundProps> = React.memo(({ aqi,
         }
     }, [cigs]);
 
+    // Update theme-color meta tag for mobile status bar continuity
+    React.useEffect(() => {
+        const colors: Record<string, string> = {
+            'safe': '#4FACFE',
+            'moderate': '#4CA1AF',
+            'unhealthy': '#2C3E50'
+        };
+
+        let color = colors.safe;
+        if (cigs > 1 && cigs <= 7) color = colors.moderate;
+        else if (cigs > 7) color = colors.unhealthy;
+
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+    }, [cigs]);
+
     return (
         <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-1000 bg-gradient-to-b ${theme.skyGradient} ${theme.filter} transform-gpu`}>
             {/* Sun / Light Source - Reduced blur for performance */}

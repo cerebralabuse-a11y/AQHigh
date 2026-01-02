@@ -21,11 +21,11 @@ const Index = () => {
 
   // Background is now handled by AnimeSkyBackground, but we keep the wrapper for specific font/layout properties
   return (
-    <div className="min-h-screen min-h-dvh safe-area-inset relative overflow-hidden text-foreground selection:bg-primary/20">
+    <div className="min-h-screen min-h-dvh relative overflow-hidden text-foreground selection:bg-primary/20">
       <AnimeSkyBackground aqi={data?.aqi ?? 50} cigarettes={data?.cigaretteEquivalent ?? 0} />
-      <main className="relative z-10 container max-w-md mx-auto px-5 py-8 flex flex-col min-h-screen min-h-dvh">
+      <main className="relative z-10 container max-w-md mx-auto px-5 pt-[env(safe-area-inset-top,20px)] pb-[env(safe-area-inset-bottom,20px)] flex flex-col min-h-screen min-h-dvh">
         {/* Header Section */}
-        <header className="pt-4 pb-8 relative">
+        <header className="pt-6 pb-8 relative">
           <p className="font-display text-2xl font-light text-foreground/90 leading-tight relative z-10">
             {isAboveSafeLimit ? (
               <>

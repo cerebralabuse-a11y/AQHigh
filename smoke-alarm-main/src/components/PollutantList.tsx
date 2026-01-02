@@ -63,7 +63,7 @@ const PollutantList = ({ pollutants }: PollutantListProps) => {
                         <div
                             key={key}
                             className={`
-                                relative overflow-hidden
+                                relative
                                 neumorphic-blend p-3 rounded-2xl flex flex-col gap-1 
                                 transition-all duration-300 hover:scale-[1.02]
                                 ${isHigh ? 'border border-red-500/30' : ''}
@@ -75,32 +75,32 @@ const PollutantList = ({ pollutants }: PollutantListProps) => {
                             )}
 
                             <div className="flex justify-between items-start">
-                                <span className="text-sm font-bold text-foreground/80">
+                                <span className="text-sm font-bold text-foreground/80 leading-tight">
                                     {item.name}
                                 </span>
                                 {isWeather ? (
-                                    Icon && <Icon className="w-3.5 h-3.5 text-foreground/40" />
+                                    Icon && <Icon className="w-3.5 h-3.5 text-foreground/40 shrink-0 ml-1" />
                                 ) : (
                                     isHigh ? (
-                                        <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                                        <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 ml-1" />
                                     ) : (
-                                        <CheckCircle2 className={`w-3.5 h-3.5 ${item.severity === 'good' ? 'text-green-500' : 'text-yellow-500'}`} />
+                                        <CheckCircle2 className={`w-3.5 h-3.5 ${item.severity === 'good' ? 'text-green-500' : 'text-yellow-500'} shrink-0 ml-1`} />
                                     )
                                 )}
                             </div>
 
-                            <div className="flex items-end justify-between mt-1">
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-display font-semibold text-foreground">
+                            <div className="flex items-end justify-between mt-1 flex-wrap gap-y-1">
+                                <div className="flex items-baseline gap-0.5">
+                                    <span className="text-xl font-display font-semibold text-foreground">
                                         {item.value}
                                     </span>
-                                    <span className="text-xs font-medium text-foreground/40">
+                                    <span className="text-[10px] font-medium text-foreground/40">
                                         {item.unit}
                                     </span>
                                 </div>
 
                                 {!isWeather && item.severity && (
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg} ${statusColor} capitalize`}>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusBg} ${statusColor} capitalize whitespace-nowrap`}>
                                         {item.severity}
                                     </span>
                                 )}
