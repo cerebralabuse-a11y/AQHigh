@@ -1,4 +1,4 @@
-export const OPENWEATHER_API_KEY = "18d25088a4cb9defc32de3bec9387bc3";
+export const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || "18d25088a4cb9defc32de3bec9387bc3";
 
 export interface GeoLocation {
     name: string;
@@ -160,6 +160,22 @@ export const getAirPollution = async (lat: number, lon: number): Promise<Polluti
     if (!response.ok) throw new Error("Pollution fetch failed");
     const data = await response.json();
     return data.list[0].components;
+};
+
+export const getAirPollutionHistory = async (lat: number, lon: number, start: number, end: number): Promise<any[]> => {
+    const url = `https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${end}&appid=${OPENWEATHER_API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("History fetch failed");
+    const data = await response.json();
+    return data.list;
+};
+
+export const getAirPollutionForecast = async (lat: number, lon: number): Promise<any[]> => {
+    const url = `https://api.openweathermap.org/data/2.5/air_pollution/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Forecast fetch failed");
+    const data = await response.json();
+    return data.list;
 };
 
 export const reverseGeocode = async (lat: number, lon: number): Promise<string> => {

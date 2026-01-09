@@ -10,6 +10,9 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 interface ShareExperienceProps {
     aqi: number;
@@ -145,8 +148,22 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
         }
     };
 
-    const handleCameraClick = () => {
-        fileInputRef.current?.click();
+    const handleCameraClick = async () => {
+        try {
+            const image = await CapCamera.getPhoto({
+                quality: 90,
+                allowEditing: true,
+                resultType: CameraResultType.DataUrl,
+                source: CameraSource.Prompt // Asks user to choose between Camera or Gallery
+            });
+
+            if (image.dataUrl) {
+                setBackgroundImage(image.dataUrl);
+            }
+        } catch (error) {
+            console.error("Camera error:", error);
+            // Don't toast error if user cancelled
+        }
     };
 
     const handleShare = async () => {
@@ -169,15 +186,29 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                 const file = new File([blob], `aqhigh-experience.png`, { type: "image/png" });
 
                 // Check for native share support
-                if (navigator.share && navigator.canShare({ files: [file] })) {
+                if (await Share.canShare()) {
                     try {
-                        await navigator.share({
-                            files: [file],
+                        const base64Data = canvas.toDataURL("image/png").split(',')[1];
+                        const fileName = `aqhigh-${Date.now()}.png`;
+
+                        await Filesystem.writeFile({
+                            path: fileName,
+                            data: base64Data,
+                            directory: Directory.Cache
+                        });
+
+                        const { uri } = await Filesystem.getUri({
+                            path: fileName,
+                            directory: Directory.Cache
+                        });
+
+                        await Share.share({
                             title: 'AQHigh Experience',
                             text: `Check out the air quality in ${city}! AQI: ${aqi}`,
+                            url: uri,
                         });
                         toast.success("Shared successfully!");
-                    } catch (shareError) {
+                    } catch (shareError: any) {
                         console.log("Share skipped/cancelled", shareError);
                     }
                 } else {
@@ -312,14 +343,6 @@ const ShareExperience = ({ aqi, cigarettes, city }: ShareExperienceProps) => {
                             </Button>
                         )}
                     </div>
-
-                    <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                    />
                 </div>
 
                 {/* Footer Actions */}

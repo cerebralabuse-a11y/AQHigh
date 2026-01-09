@@ -1,12 +1,7 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import {
-  getAirPollution,
-  calculateEPAAQI,
-  searchCities,
-  reverseGeocode,
-  PollutionComponents
-} from "@/services/openWeatherService";
+import { getAirPollution, calculateEPAAQI, searchCities, reverseGeocode, getAirPollutionHistory, getAirPollutionForecast, PollutionComponents } from "@/services/openWeatherService";
+import { Geolocation } from '@capacitor/geolocation';
 
 interface Pollutant {
   value: number;
@@ -57,6 +52,47 @@ export const useAQI = () => {
       const components = await getAirPollution(lat, lon);
       const epaResult = calculateEPAAQI(components);
 
+      // Fetch History (3 days back)
+      const now = Math.floor(Date.now() / 1000);
+      const threeDaysAgo = now - (3 * 24 * 60 * 60);
+      const historyItems = await getAirPollutionHistory(lat, lon, threeDaysAgo, now);
+
+      // Fetch Forecast
+      const forecastItems = await getAirPollutionForecast(lat, lon);
+
+      // Process history (take 1 point per day)
+      const processDaily = (items: any[]) => {
+        const daily: Record<string, any> = {};
+        items.forEach(item => {
+          const date = new Date(item.dt * 1000).toDateString();
+          if (!daily[date]) daily[date] = item;
+        });
+        return Object.values(daily);
+      };
+
+      const pastData = processDaily(historyItems).slice(-3).map(item => ({
+        day: new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
+        avg: calculateEPAAQI(item.components).aqi,
+        max: calculateEPAAQI(item.components).aqi,
+        min: calculateEPAAQI(item.components).aqi,
+      }));
+
+      const futureData = processDaily(forecastItems).slice(1, 4).map(item => ({
+        day: new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
+        avg: calculateEPAAQI(item.components).aqi,
+        max: calculateEPAAQI(item.components).aqi,
+        min: calculateEPAAQI(item.components).aqi,
+      }));
+
+      const todayData: DailyForecast = {
+        day: "Today",
+        avg: epaResult.aqi,
+        max: epaResult.aqi,
+        min: epaResult.aqi,
+      };
+
+      const fullForecast = [...pastData, todayData, ...futureData];
+
       const pollutants: Record<string, Pollutant> = {};
       const metricMap: Record<string, string> = {
         'pm2_5': 'Particulate Matter (PM2.5)',
@@ -88,7 +124,7 @@ export const useAQI = () => {
         city: cityLabel,
         cigaretteEquivalent: calculateCigaretteEquivalent(components.pm2_5),
         pollutants,
-        forecast: [] // Forecast migration omitted for brevity unless requested
+        forecast: fullForecast
       };
 
       setData(newData);
@@ -131,22 +167,25 @@ export const useAQI = () => {
   const fetchAQIByLocation = useCallback(async () => {
     setIsLoading(true);
     try {
-      const getPosition = (): Promise<GeolocationPosition> => {
-        return new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
-        });
-      };
-
       toast.info("Detecting your location...");
-      const position = await getPosition();
+
+      const permissions = await Geolocation.checkPermissions();
+      if (permissions.location !== 'granted') {
+        const request = await Geolocation.requestPermissions();
+        if (request.location !== 'granted') {
+          throw new Error("Location permission denied");
+        }
+      }
+
+      const position = await Geolocation.getCurrentPosition();
       const { latitude, longitude } = position.coords;
 
       const cityName = await reverseGeocode(latitude, longitude);
       await fetchAQIData(latitude, longitude, cityName);
       toast.success(`Location detected: ${cityName}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Location error:", error);
-      toast.error("Unable to detect location");
+      toast.error(error.message || "Unable to detect location");
     } finally {
       setIsLoading(false);
     }

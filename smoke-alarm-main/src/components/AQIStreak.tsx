@@ -23,30 +23,28 @@ const getAQIColor = (aqi: number) => {
 };
 
 const formatDate = (dateStr: string) => {
+    if (dateStr === "Today") return "Today";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
 
-    const diffTime = today.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return date.toLocaleDateString("en-US", { weekday: 'short' });
+    if (diffDays === -1) return "Yesterday";
+    if (diffDays === 1) return "Tomorrow";
 
-    return date.toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("en-US", { weekday: 'short' });
 };
 
 const AQIStreak: React.FC<AQIStreakProps> = ({ forecast, className }) => {
-    // The WAQI API provides forecast data, but we'll treat it as historical/current data
-    // Sort by date to show most recent first (reverse chronological order)
-    const sortedData = [...forecast].sort((a, b) => {
-        return new Date(b.day).getTime() - new Date(a.day).getTime();
-    });
-
-    // Take up to 7 most recent days
-    const displayData = sortedData.slice(0, 7);
+    // We already have the forecast in order (3 past, today, 3 future)
+    const displayData = forecast;
 
     if (displayData.length === 0) return null;
 
@@ -54,10 +52,10 @@ const AQIStreak: React.FC<AQIStreakProps> = ({ forecast, className }) => {
         <div className={cn("neumorphic-blend p-4 rounded-2xl w-full", className)}>
             <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/60 font-display">
-                    Recent Days
+                    Air Quality Trend
                 </h3>
                 <span className="text-[10px] text-foreground/40 font-medium">
-                    Past 7 Days
+                    7-Day View
                 </span>
             </div>
 
